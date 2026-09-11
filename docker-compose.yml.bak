@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: servicehub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: servicehub_db
+      POSTGRES_USER: servicehub_user
+      POSTGRES_PASSWORD: servicehub_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - servicehub-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: servicehub-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://servicehub_user:servicehub_password@postgres:5432/servicehub_db
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
+      - AES_ENCRYPTION_KEY=your-aes-encryption-key-32-chars-min
+      - NODE_ENV=production
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    networks:
+      - servicehub-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: servicehub-frontend
+    restart: unless-stopped
+    environment:
+      - VITE_API_URL=http://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - servicehub-network
+
+volumes:
+  postgres_data:
+
+networks:
+  servicehub-network:
+    driver: bridge

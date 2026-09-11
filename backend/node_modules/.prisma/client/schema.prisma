@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String     @id @default(uuid())
+  name             String
+  lastName         String
+  email            String     @unique
+  username         String     @unique
+  password         String
+  role             Role       @default(OPERATOR)
+  avatarUrl        String?
+  twoFactorEnabled Boolean    @default(false)
+  twoFactorSecret  String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  lastLogin        DateTime?
+  isActive         Boolean    @default(true)
+  logs             AuditLog[]
+  services         Service[]
+  sessions         Session[]
+
+  @@index([email])
+  @@index([username])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  ipAddress    String?
+  userAgent    String?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Service {
+  id            String        @id @default(uuid())
+  name          String
+  description   String?
+  url           String
+  username      String?
+  token         String?
+  icon          String?
+  category      String
+  tags          String[]      @default([])
+  color         String?       @default("#3b82f6")
+  checkType     CheckType     @default(HTTP)
+  checkInterval Int           @default(300)
+  isFavorite    Boolean       @default(false)
+  isActive      Boolean       @default(true)
+  status        ServiceStatus @default(OFFLINE)
+  lastCheck     DateTime?
+  responseTime  Float?
+  lastError     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  createdBy     String
+  password      String?
+  audits        AuditLog[]
+  categoryObj   Category      @relation(fields: [category], references: [name])
+  user          User          @relation(fields: [createdBy], references: [id])
+
+  @@index([category])
+  @@index([status])
+  @@index([isFavorite])
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  color       String?   @default("#3b82f6")
+  icon        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  services    Service[]
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+  READER
+}
+
+enum CheckType {
+  HTTP
+  HTTPS
+  HEAD
+  ICMP
+}
+
+enum ServiceStatus {
+  ONLINE
+  OFFLINE
+  UNAVAILABLE
+}
