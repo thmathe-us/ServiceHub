@@ -8,8 +8,7 @@ services:
     environment:
       POSTGRES_DB: servicehub_db
       POSTGRES_USER: servicehub_user
-      POSTGRES_PASSWORD: servicehub_password
-      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-servicehub_password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -18,14 +17,12 @@ services:
       - servicehub-network
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/thmathe-us/servicehub-backend:latest
     container_name: servicehub-backend
     restart: unless-stopped
     environment:
-      - POSTGRES_PASSWORD=servicehub_password
-      - DATABASE_URL=postgresql://servicehub_user:servicehub_password@postgres:5432/servicehub_db
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_URL=postgresql://servicehub_user:${POSTGRES_PASSWORD}@postgres:5432/servicehub_db
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-super-secret-refresh-key-change-in-production}
       - NODE_ENV=production
@@ -35,7 +32,8 @@ services:
       - CURRENT_VERSION=${CURRENT_VERSION}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./:/servicehub
+      - ./docker-compose.yml:/docker-compose.yml:ro
+      - ./.env:/.env:ro
     ports:
       - "3000:3001"
     depends_on:
@@ -45,13 +43,11 @@ services:
       - servicehub-network
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/thmathe-us/servicehub-frontend:latest
     container_name: servicehub-frontend
     restart: unless-stopped
     environment:
-      - VITE_API_URL=/api
+      - VITE_API_URL=http://localhost:3000
     ports:
       - "8080:80"
     depends_on:

@@ -7,8 +7,7 @@ import * as path from 'path';
 
 /**
  * Service that checks GitHub Releases for a newer version of ServiceHub.
- * If a newer release is found, it pulls the latest Docker images (or rebuilds
- * the containers) and restarts the stack.
+ * If a newer release is found, it pulls the latest Docker images and restarts the stack.
  */
 @Injectable()
 export class UpdateService {
@@ -19,7 +18,7 @@ export class UpdateService {
   private readonly repoName: string;
 
   constructor() {
-    // Expected env vars: GITHUB_REPO="owner/repo" and optionally GITHUB_TOKEN.
+    // Expected env vars: GITHUB_REPO=\"owner/repo\" and optionally GITHUB_TOKEN.
     const repo = process.env.GITHUB_REPO;
     if (!repo) {
       this.logger.warn('GITHUB_REPO not set – auto‑update disabled');
@@ -102,15 +101,16 @@ export class UpdateService {
       this.logger.warn('Could not update .env with new version', e);
     }
 
-    // Pull latest images and rebuild containers.
-    // This runs `docker-compose pull && docker-compose up -d --build` in the project root.
-    const projectRoot = '/servicehub';
-    const cmd = 'docker-compose pull && docker-compose up -d --build';
+    // Pull latest images (backend and frontend) and restart containers.
+    // Uses the docker-compose.yml and .env mounted at /docker-compose.yml and /.env
+    const composeFile = '/docker-compose.yml';
+    const envFile = '/.env';
+    const cmd = `docker compose -f ${composeFile} --env-file ${envFile} pull backend frontend && docker compose -f ${composeFile} --env-file ${envFile} up -d backend frontend`;
     // Run the command detached, so that the container does not wait for it to complete.
     // We use nohup and background the shell, redirecting output to /dev/null.
-    const detachedCmd = `nohup sh -c \\\"${cmd}\\\" > /dev/null 2>&1 &`;
+    const detachedCmd = `nohup sh -c "${cmd}" > /dev/null 2>&1 &`;
     return new Promise((resolve, reject) => {
-      exec(detachedCmd, { cwd: projectRoot }, (error, stdout, stderr) => {
+      exec(detachedCmd, { cwd: '/' }, (error, stdout, stderr) => {
         // The nohup command should return immediately.
         if (error) {
           this.logger.error('Failed to spawn update command', error);
@@ -125,10 +125,10 @@ export class UpdateService {
 
   private updateCurrentVersionFile(newVersion: string) {
     try {
-      const envPath = '/servicehub/.env';
-      const envContent = fs.readFileSync(envPath, 'utf8');
-      const newContent = envContent.replace(/CURRENT_VERSION=.*/g, `CURRENT_VERSION=${newVersion}`);
-      fs.writeFileSync(envPath, newContent);
+      const envPath = '/.env';
+      let envContent = fs.readFileSync(envPath, 'utf8');
+      envContent = envContent.replace(/CURRENT_VERSION=.*/g, `CURRENT_VERSION=${newVersion}`);
+      fs.writeFileSync(envPath, envContent);
       this.logger.log('Updated CURRENT_VERSION in .env');
     } catch (e) {
       this.logger.warn('Could not update .env with new version', e);

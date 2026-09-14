@@ -1,268 +1,167 @@
-# ServiceHub - Self-Hosted Service Monitor & Dashboard
-
-## 📋 Sobre o Projeto
-
-ServiceHub é uma aplicação web completa para monitoramento e gerenciamento de serviços self-hosted. Com uma interface minimalista, elegante e moderna, o ServiceHub permite centralizar o monitoramento, acesso rápido, gestão de credenciais e organização de seus serviços internos.
-
-## ✨ Características Principais
-
-- **Monitoramento em Tempo Real**: Verificação de status HTTP/HTTPS, HEAD e Ping ICMP
-- **Gestão de Credenciais Segura**: Criptografia AES-256 para senhas e tokens
-- **Organização por Categorias e Tags**: Agrupe seus serviços por Infraestrutura, Streaming, Monitoramento, etc.
-- **Sistema de Favoritos**: Marque os serviços mais importantes
-- **Visualização em Grid e Lista**: Alterne entre diferentes visuais conforme sua preferência
-- **Perfis de Acesso**: Administrador, Operador e Leitor com RBAC completo
-- **Auditoria e Logs**: Registro completo de atividades no sistema
-- **Notificações Preparadas**: Arquitetura pronta para Email, Telegram, Discord, Microsoft Teams e Webhooks
-
-## 🛠️ Stack Tecnológica
-
-### Frontend
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- Shadcn/UI
-- React Query
-- Axios
-
-### Backend
-- Node.js
-- NestJS
-- Prisma ORM
-- PostgreSQL
-
-### Infraestrutura
-- Docker
-- Docker Compose
-
-## 🚀 Instruções de Instalação
-
-### Pré-requisitos
-- Docker e Docker Compose instalados
-- Node.js 18+ (para desenvolvimento local)
-
-### Executando com Docker Compose
-
-1. Clone o repositório:
-```bash
-git clone <repository-url>
-cd servicehub
-```
-
-2. Configure as variáveis de ambiente:
-```bash
-cp .env.example .env
-# Edite o .env com suas configurações
-```
-
-3. Inicie os containers:
-```bash
-docker-compose up -d --build
-```
-
-4. Acesse a aplicação:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
-- Swagger UI: http://localhost:3001/api/docs
-
-### Credenciais Iniciais
-- Usuário: `admin`
-- Senha: `admin`
-
-> ⚠️ **Importante**: Após o primeiro login, o sistema solicitará a alteração da senha inicial por motivos de segurança.
-
-## 📁 Estrutura do Projeto
-
-```
-servicehub/
-├── backend/                 # NestJS Backend
-│   ├── src/
-│   │   ├── auth/            # Autenticação e autorização
-│   │   ├── users/           # Gestão de usuários
-│   │   ├── services/        # Monitoramento e gestão de serviços
-│   │   ├── categories/      # Categorias e agrupamentos
-│   │   ├── config/          # Configurações do sistema
-│   │   ├── logs/            # Logs de auditoria
-│   │   ├── healthcheck/     # Serviço de verificação de status
-│   │   └── ...
-│   ├── prisma/
-│   │   ├── schema.prisma    # Modelo de dados
-│   │   └── seed.ts          # Seed inicial
-│   └── ...
-├── frontend/                # React Frontend
-│   ├── src/
-│   │   ├── components/      # Componentes UI
-│   │   ├── pages/           # Páginas da aplicação
-│   │   ├── hooks/           # Hooks personalizados
-│   │   ├── services/        # Serviços de API
-│   │   ├── store/           # Estado global
-│   │   └── ...
-│   └── ...
-├── docker-compose.yml       # Configuração Docker Compose
-├── .env.example             # Exemplo de variáveis de ambiente
-└── README.md
-```
-
-## 🔐 Segurança
-
-- JWT e Refresh Tokens para autenticação
-- Rate Limiting para proteção contra ataques de força bruta
-- Proteção CSRF e XSS
-- Helmet para headers de segurança
-- Criptografia AES-256 para credenciais de serviços
-- Hash bcrypt para senhas de usuários
-- RBAC completo para controle de acesso
-
-## 📄 Licença
-
-Este projeto é licenciado sob a MIT License.
-```
 # ServiceHub
 
-ServiceHub é uma plataforma de monitoramento e gerenciamento de aplicações auto-hospedadas, construida com:
+ServiceHub is a self-hosted platform for monitoring and managing applications. It consists of a backend (NestJS) and a frontend (React) orchestrated with Docker Compose.
 
-- **Backend**: NestJS, Prisma, PostgreSQL
-- **Frontend**: React, Vite, TypeScript
-- **Orquestração**: Docker Compose
+## 🚀 Quick Start (Production)
 
-## Funcionalidades
+You only need two files on the host: `docker-compose.yml` and `.env`.
 
-- Monitoramento de serviços (status, logs, métricas)
-- Gerenciamento de usuários e autenticação (JWT, refresh token, opcional 2FA)
-- Configurações generales (tema, idioma, intervalo de verificação)
-- **Atualizações automáticas**: verifica releases no GitHub e aplica atualizações via `docker-compose pull && up -d --build`
-- Segurança: proteção de rotas, refresh de token, alteração de senha
-
-## Pré-requisitos
-
-- Docker Engine >= 20.10
-- Docker Compose (v2)
-- Node.js >= 18 (opcional, apenas para desenvolvimento local)
-- Git
-
-## Instalação (produção)
-
-1. Clone o repositório:
-   ```bash
-   git clone <repository-url>
-   cd servicehub
-   ```
-
-2. Copie o arquivo de exemplo de variáveis de ambiente e ajuste conforme necessário:
-   ```bash
-   cp .env.example .env   # Se existir, ou crie manualmente
-   ```
-   O arquivo `.env` deve conter:
-   ```
-   # Variáveis essenciais
-   GITHUB_REPO=seu-usuario/seu-repo          # Repositório GitHub para verificar releases
-   GITHUB_TOKEN=seu_token_pessoal            # Opcional, aumenta limite de requisições
-   CURRENT_VERSION=0.0.0                     # Versão atual instalada (define como 0.0.0 para forçar verificação)
-   POSTGRES_PASSWORD=sua_senha_segura        # Senha para o usuário do PostgreSQL
-   JWT_SECRET=seu_segredo_jwt                 # Segredo para assinatura de access token
-   JWT_REFRESH_SECRET=seu_segredo_refresh    # Segredo para refresh token
-   ```
-
-   Caso não exista `.env.example`, crie `.env` com o conteúdo acima.
-
-3. Inicie os serviços:
-   ```bash
-   docker compose up -d
-   ```
-
-   O compose irá:
-   - Criar a rede `servicehub-network`
-   - Subir o PostgreSQL (porta 5432)
-   - Construir e subir o backend (porta 3000 exposta como 3000->3001)
-   - Construir e subir o frontend (porta 8080)
-
-4. Acesse a interface:
-   - URL: http://localhost:8080
-   - Primeiro acesso: crie um usuário admin via tela de login (ou use as credenciais padrão se houver seed).
-
-## Desenvolvimento
-
-### Backend
+### 1. Create the directory and files
 
 ```bash
+mkdir -p /opt/servicehub
+cd /opt/servicehub
+```
+
+Create `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: servicehub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: servicehub_db
+      POSTGRES_USER: servicehub_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - servicehub-network
+
+  backend:
+    image: ghcr.io/thmathe-us/servicehub-backend:latest
+    container_name: servicehub-backend
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_URL=postgresql://servicehub_user:${POSTGRES_PASSWORD}@postgres:5432/servicehub_db
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-super-secret-refresh-key-change-in-production}
+      - NODE_ENV=production
+      - PORT=3001
+      - GITHUB_REPO=${GITHUB_REPO}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - CURRENT_VERSION=${CURRENT_VERSION}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-compose.yml:/docker-compose.yml:ro
+      - ./.env:/.env:ro
+    ports:
+      - "3000:3001"
+    depends_on:
+      - postgres
+    entrypoint: ./entrypoint.sh
+    networks:
+      - servicehub-network
+
+  frontend:
+    image: ghcr.io/thmathe-us/servicehub-frontend:latest
+    container_name: servicehub-frontend
+    restart: unless-stopped
+    environment:
+      - VITE_API_URL=http://localhost:3000
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - servicehub-network
+
+volumes:
+  postgres_data:
+
+networks:
+  servicehub-network:
+    driver: bridge
+```
+
+Create `.env` (adjust the values):
+
+```dotenv
+# Required
+POSTGRES_PASSWORD=your_postgres_password_here
+JWT_SECRET=your_jwt_secret_here
+JWT_REFRESH_SECRET=your_jwt_refresh_secret_here
+GITHUB_REPO=thmathe-us/ServiceHub   # or your own fork
+# Optional: increase GitHub API rate limit
+GITHUB_TOKEN=your_github_personal_access_token   # leave empty for unauthenticated (60 req/h)
+# The update service will keep this in sync with the latest release
+CURRENT_VERSION=0.0.0
+```
+
+### 2. Start the stack
+
+```bash
+docker compose up -d
+```
+
+### 3. Access the application
+
+Open your browser at `http://<host_ip>:8080`.
+
+## 🔄 Automatic Updates
+
+The backend includes an update service that checks GitHub for new releases every 6 hours. When a newer version is found, it:
+
+1. Updates `CURRENT_VERSION` in the host's `.env` file.
+2. Runs `docker compose pull backend frontend` to fetch the latest images.
+3. Runs `docker compose up -d backend frontend` to restart the containers with the new images.
+
+No manual intervention is required. The update service uses the `docker-compose.yml` and `.env` files mounted into the backend container (read‑only) to execute the commands on the host.
+
+## 🛠️ Development
+
+If you wish to modify the code and run locally:
+
+### Backend
+```bash
 cd backend
-cp .env.example .env   # ajuste se necessário
+cp .env.example .env   # adjust as needed
 npm install
-npm run start:dev      # ou npm run start para modo produção
+npm run start:dev
 ```
 
 ### Frontend
-
 ```bash
 cd frontend
-cp .env.example .env   # VITE_API_URL=http://localhost:3000 (ou conforme seu proxy)
+cp .env.example .env   # VITE_API_URL=http://localhost:3000
 npm install
-npm run dev            # Vite dev server na porta 5173
+npm run dev
 ```
 
-### Testes
+## 📦 How Images Are Built and Published
 
-```bash
-# Backend
-npm test
+A GitHub Actions workflow (`.github/workflows/docker.yml`) runs on every push to the `main` branch:
 
-# Frontend (se houver)
-npm test
-```
+1. Checks out the repository.
+2. Logs into GitHub Container Registry (GHCR) using the built-in `GITHUB_TOKEN`.
+3. Builds and pushes the backend image to `ghcr.io/<owner>/servicehub-backend:latest`.
+4. Builds and pushes the frontend image to `ghcr.io/<owner>/servicehub-frontend:latest`.
 
-## Atualizações automáticas
+The `docker-compose.yml` above points to these `latest` tags, so a simple `docker compose pull` will get the most recent successful build.
 
-O serviço de atualização roda em segundo plano (via `@Cron` no backend) e pode ser disparado manualmente:
+## 🔐 Security Notes
 
-- **Verificar atualizações**: botão “Checar Atualizações” na aba *Atualizações* das Configurações.
-- **Aplicar atualização**: botão “Atualizar” (habilitado somente quando houver versão mais recente no GitHub).
+- The PostgreSQL password is set exclusively via the `POSTGRES_PASSWORD` environment variable (no `trust` authentication).
+- JWT secrets are also environment‑only; generate strong random values.
+- The backend container mounts the host's Docker socket (`/var/run/docker.sock`) **only** to allow the update service to run `docker compose`. No other host directories are mounted.
+- The `docker-compose.yml` and `.env` files are mounted read‑only into the backend container for the update service's use.
 
-O processo de atualização:
-1. Busca a última tag no repositório definido em `GITHUB_REPO`.
-2. Se a tag for maior que `CURRENT_VERSION` (lida do `.env`):
-   - Atualiza o arquivo `.env` com `CURRENT_VERSION=<nova_tag>`.
-   - Executa `docker-compose pull && docker-compose up -d --build` em segundo plano (usando o socket Docker do host e o código-fonte montado como volume).
-3. Caso não haja nova versão, nada é feito.
+## 🐳 Volumes and Networks
 
-### Variáveis de ambiente relevantes
+- `postgres_data`: Persistent volume for the PostgreSQL database.
+- `servicehub-network`: Internal bridge network for inter‑service communication.
 
-| Variável          | Descrição                                                                                   |
-|-------------------|---------------------------------------------------------------------------------------------|
-| `GITHUB_REPO`     | Repositório no formato `usuario/repo` onde as releases são verificadas.                     |
-| `GITHUB_TOKEN`    | Token pessoal do GitHub (opcional). Se ausente, o limite é 60 requisições/hora.            |
-| `CURRENT_VERSION` | Versão atualmente instalada. Atualizada automaticamente após um update bem‑sucedido.        |
-| `POSTGRES_PASSWORD`| Senha do usuário `servicehub_user` no banco PostgreSQL.                                    |
-| `JWT_SECRET`      | Segredo usado para assinar os access tokens (mantenha secreto).                             |
-| `JWT_REFRESH_SECRET`| Segredo usado para assinar os refresh tokens (mantenha secreto).                        |
+## 📄 License
 
-## Estrutura do repositório
+This project is licensed under the MIT License – see the `LICENSE` file for details.
 
-```
-servicehub/
-├── backend/               # Código NestJS
-│   ├── src/
-│   │   └── update/        # Serviço e controller de atualizações
-│   ├── Dockerfile
-│   └── entrypoint.sh
-├── frontend/              # Código React/Vite
-│   ├── src/
-│   │   ├── pages/
-│   │   │   └── Settings.tsx   # Aba de Atualizações
-│   │   └── services/
-│   │       └── updateApi.ts   # Chamadas ao backend de atualização
-│   ├── Dockerfile
-│   └── nginx.conf
-├── docker-compose.yml     # Orquestração
-├── .env                   # Variáveis de ambiente (não versionar)
-└── README.md
-```
+## 🙏 Support
 
-## Licença
-
-Este projeto está licenciado sob a licença MIT - veja o arquivo `LICENSE` para mais detalhes.
-
-## Suporte
-
-Para problemas ou dúvidas, abra uma issue no repositório ou entre em contato com a equipe de manutenção.
-(Atualização da aplicação)
+For issues or questions, please open a GitHub issue in the repository.

@@ -1,58 +1,20 @@
-FROM node:18-alpine AS build
-
+# ------- build stage -------
+FROM node:20-alpine AS build
 WORKDIR /app
-
-# Install openssl for Prisma
-RUN apk --no-cache add openssl
-
-# Copy package files
 COPY package*.json ./
-COPY prisma ./prisma/
-
-# Install dependencies
-RUN npm install --legacy-peer-deps
-
-# Copy source code
+RUN npm ci
 COPY . .
-
-# Generate Prisma Client
-RUN npx prisma generate
-
-# Build the application
 RUN npm run build
 
-# Production image
-FROM node:18-alpine
-
+# ------- runtime stage -------
+FROM node:20-alpine
 WORKDIR /app
-
-# Install openssl for Prisma and nc for waiting
-RUN apk --no-cache add openssl netcat-openbsd docker-compose
-
-# Copy package files
-COPY package*.json ./
-
-# Copy prisma schema and seed files
-COPY prisma ./prisma/
-
-# Install dependencies (including bcrypt for seed)
-RUN npm install --legacy-peer-deps --only=production && npm install --no-save bcrypt
-
-# Generate Prisma Client in production image
-RUN npx prisma generate
-
-# Create dist directory and copy built application
-RUN mkdir -p dist
-COPY --from=build /app/dist/. /app/dist/
-COPY --from=build /app/prisma ./prisma
-
-# Copy entrypoint script
-COPY entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
-
-# Expose port
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+# Install Docker client and compose plugin for host communication
+RUN apk --no-cache add openssl netcat-openbsd docker-cli docker-compose
+# Copia o compose que será usado pelo serviço de atualização
+COPY docker-compose.yml ./docker-compose.yml
+ENV NODE_ENV=production
 EXPOSE 3001
-
-# Start the application with entrypoint
-ENTRYPOINT ["./entrypoint.sh"]
-
+CMD ["node", "dist/main.js"]
