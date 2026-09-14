@@ -11,13 +11,19 @@ RUN chmod +x node_modules/.bin/nest && npm run build
 
 # ------- runtime stage -------
 FROM node:20-alpine
+
 WORKDIR /app
+
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
-# Install Docker client and compose plugin for host communication
+COPY --from=build /app/prisma ./prisma
+
 RUN apk --no-cache add openssl netcat-openbsd docker-cli docker-compose
-# Copia o compose que será usado pelo serviço de atualização
+
 COPY docker-compose.yml ./docker-compose.yml
+
 ENV NODE_ENV=production
+
 EXPOSE 3001
+
 CMD ["node", "dist/src/main.js"]
