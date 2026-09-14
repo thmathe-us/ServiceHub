@@ -14,7 +14,7 @@ npx prisma db push --accept-data-loss
 
 # Run seed
 echo "Running seed..."
-npm run prisma:seed.js
+node prisma/seed.js
 
 # Start the application
 echo "Starting application..."
