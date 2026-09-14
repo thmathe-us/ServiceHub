@@ -12,9 +12,9 @@ echo "Running prisma generate and db push..."
 npx prisma generate
 npx prisma db push --accept-data-loss
 
-# Run seed using npm run prisma:seed
+# Run seed
 echo "Running seed..."
-npm run prisma:seed
+npm run prisma:seed.js
 
 # Start the application
 echo "Starting application..."
