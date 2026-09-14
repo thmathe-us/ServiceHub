@@ -4,6 +4,9 @@ WORKDIR /app
 COPY backend/package*.json ./
 RUN npm install --legacy-peer-deps
 COPY backend .
+
+RUN npx prisma generate
+
 RUN chmod +x node_modules/.bin/nest && npm run build
 
 # ------- runtime stage -------
