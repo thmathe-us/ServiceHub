@@ -20,4 +20,4 @@ RUN apk --no-cache add openssl netcat-openbsd docker-cli docker-compose
 COPY docker-compose.yml ./docker-compose.yml
 ENV NODE_ENV=production
 EXPOSE 3001
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
