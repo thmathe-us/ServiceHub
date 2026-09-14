@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Switch } from '../components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { configsApi, SystemConfig } from '../services/configsApi';
 import { updateApi } from '../services/updateApi';
 import { authApi } from '../services/authApi';
 import { usePreferencesStore, useTranslation } from '../store/preferences.store';
@@ -14,6 +15,10 @@ const Settings: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [versionInfo, setVersionInfo] = useState<{ currentVersion: string; latestVersion: string } | null>(null);
+  const [versionLoading, setVersionLoading] = useState(false);
+  const [versionError, setVersionError] = useState<string | null>(null);
+  const [clickMessage, setClickMessage] = useState('');
 
   useEffect(() => {
     configsApi.getAll()
@@ -31,6 +36,22 @@ const Settings: React.FC = () => {
       })
       .catch(() => setMessage('Não foi possível carregar as configurações.'))
       .finally(() => setIsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    async function loadVersion() {
+      setVersionLoading(true);
+      setVersionError(null);
+      try {
+        const data = await updateApi.getVersion();
+        setVersionInfo(data);
+      } catch (err) {
+        setVersionError('Falha ao carregar informações de versão');
+      } finally {
+        setVersionLoading(false);
+      }
+    }
+    loadVersion();
   }, []);
 
   const handleSaveSettings = async () => {
@@ -76,13 +97,13 @@ const Settings: React.FC = () => {
       </div>
 
       {message && <p className="text-sm text-text-secondary" role="status">{message}</p>}
+      {clickMessage && <p className="text-sm text-info">{clickMessage}</p>}
       <Tabs defaultValue="general" className="space-y-4">
         <TabsList>
           <TabsTrigger value="general">{t.general}</TabsTrigger>
           <TabsTrigger value="notifications">{t.notifications}</TabsTrigger>
           <TabsTrigger value="security">{t.security}</TabsTrigger>
-          <TabsTrigger value="update">Atualizar</TabsTrigger>
-
+          <TabsTrigger value="update">Atualizações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -211,9 +232,66 @@ const Settings: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => {
-                updateApi.trigger().then(() => alert('Verificação de atualização concluída.'));
-              }}>Checar Atualizações</Button>
+              {versionLoading ? (
+                <p className="text-sm text-muted-foreground">Carregando informações de versão...</p>
+              ) : versionError ? (
+                <p className="text-sm text-destructive">{versionError}</p>
+              ) : versionInfo ? (
+                <>
+                  <div className="space-y-4">
+                    <div className="text-sm font-medium">Versão atual: {versionInfo.currentVersion}</div>
+                    <div className="text-sm font-medium">Última versão disponível: {versionInfo.latestVersion}</div>
+                    {versionInfo.latestVersion !== versionInfo.currentVersion && (
+                      <div className="text-sm text-muted-foreground">
+                        Uma nova versão está disponível. Clique no botão abaixo para atualizar.
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-4">
+                    <Button onClick={() => {
+                      setClickMessage('Checar Atualizações clicked');
+                      updateApi.getVersion()
+                        .then(data => {
+                          setVersionInfo(data);
+                          setClickMessage(`Versão verificada: ${data.currentVersion} -> ${data.latestVersion}`);
+                        })
+                        .catch(() => {
+                          setClickMessage('Erro ao verificar atualizações');
+                          setVersionError('Erro ao verificar atualizações');
+                        });
+                    }}>
+                      Checar Atualizações
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setClickMessage('Atualizar clicked');
+                        updateApi.trigger()
+                          .then(() => {
+                            // After triggering update, we may want to refetch version info
+                            return updateApi.getVersion()
+                              .then(data => {
+                                setVersionInfo(data);
+                                setClickMessage(`Atualização concluída: ${data.currentVersion} -> ${data.latestVersion}`);
+                              })
+                              .catch(() => {
+                                setClickMessage('Erro ao verificar atualizações pós-update');
+                                setVersionError('Erro ao verificar atualizações pós-update');
+                              });
+                          })
+                          .catch(() => {
+                            setClickMessage('Erro ao iniciar atualização');
+                            setVersionError('Erro ao iniciar atualização');
+                          });
+                      }}
+                      disabled={versionInfo.latestVersion === versionInfo.currentVersion}
+                    >
+                      Atualizar
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <p>Nenhuma informação de versão disponível.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

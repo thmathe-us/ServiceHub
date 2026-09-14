@@ -12,11 +12,11 @@ import * as path from 'path';
  */
 @Injectable()
 export class UpdateService {
+  readonly currentVersion: string;
   private readonly logger = new Logger(UpdateService.name);
   private readonly octokit: Octokit;
   private readonly repoOwner: string;
   private readonly repoName: string;
-  private readonly currentVersion: string;
 
   constructor() {
     // Expected env vars: GITHUB_REPO="owner/repo" and optionally GITHUB_TOKEN.
@@ -54,13 +54,31 @@ export class UpdateService {
       this.logger.log(`Latest tag: ${latestTag}, current: ${this.currentVersion}`);
       if (this.isNewerVersion(latestTag, this.currentVersion)) {
         this.logger.log('New version detected – starting update process');
-        await this.performUpdate();
+        await this.performUpdate(latestTag);
       } else {
         this.logger.log('No newer version found');
       }
     } catch (err) {
       this.logger.error('Failed to fetch latest release', err);
     }
+  }
+
+  /**
+   * Fetches the latest release tag from GitHub without performing an update.
+   */
+  async getVersionInfo(): Promise<{ currentVersion: string; latestVersion: string }> {
+    if (!this.repoOwner || !this.repoName) {
+      throw new Error('GITHUB_REPO not set');
+    }
+    const { data: release } = await this.octokit.repos.getLatestRelease({
+      owner: this.repoOwner,
+      repo: this.repoName,
+    });
+    const latestTag = release.tag_name.replace(/^v/, '');
+    return {
+      currentVersion: this.currentVersion,
+      latestVersion: latestTag,
+    };
   }
 
   private isNewerVersion(latest: string, current: string): boolean {
@@ -76,22 +94,30 @@ export class UpdateService {
     return false;
   }
 
-  private async performUpdate(): Promise<void> {
+  private async performUpdate(latestTag: string): Promise<void> {
+    // First, update the CURRENT_VERSION in the .env file to prevent immediate re-trigger
+    try {
+      this.updateCurrentVersionFile(latestTag);
+    } catch (e) {
+      this.logger.warn('Could not update .env with new version', e);
+    }
+
     // Pull latest images and rebuild containers.
     // This runs `docker-compose pull && docker-compose up -d --build` in the project root.
-    const projectRoot = path.resolve(__dirname, '../../../..'); // backend/src/../../..
+    const projectRoot = '/servicehub';
     const cmd = 'docker-compose pull && docker-compose up -d --build';
+    // Run the command detached, so that the container does not wait for it to complete.
+    // We use nohup and background the shell, redirecting output to /dev/null.
+    const detachedCmd = `nohup sh -c \\\"${cmd}\\\" > /dev/null 2>&1 &`;
     return new Promise((resolve, reject) => {
-      exec(cmd, { cwd: projectRoot }, (error, stdout, stderr) => {
+      exec(detachedCmd, { cwd: projectRoot }, (error, stdout, stderr) => {
+        // The nohup command should return immediately.
         if (error) {
-          this.logger.error('Update command failed', error);
+          this.logger.error('Failed to spawn update command', error);
           reject(error);
           return;
         }
-        this.logger.log('Update command stdout:\n' + stdout);
-        if (stderr) this.logger.warn('Update command stderr:\n' + stderr);
-        // After successful update, optionally write the new version to env file.
-        this.updateCurrentVersionFile(latestTag);
+        this.logger.log('Update command spawned successfully');
         resolve();
       });
     });
@@ -99,7 +125,7 @@ export class UpdateService {
 
   private updateCurrentVersionFile(newVersion: string) {
     try {
-      const envPath = path.resolve(__dirname, '../../../..', '.env');
+      const envPath = '/servicehub/.env';
       const envContent = fs.readFileSync(envPath, 'utf8');
       const newContent = envContent.replace(/CURRENT_VERSION=.*/g, `CURRENT_VERSION=${newVersion}`);
       fs.writeFileSync(envPath, newContent);

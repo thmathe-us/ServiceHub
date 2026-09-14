@@ -9,6 +9,7 @@ services:
       POSTGRES_DB: servicehub_db
       POSTGRES_USER: servicehub_user
       POSTGRES_PASSWORD: servicehub_password
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -23,11 +24,18 @@ services:
     container_name: servicehub-backend
     restart: unless-stopped
     environment:
+      - POSTGRES_PASSWORD=servicehub_password
       - DATABASE_URL=postgresql://servicehub_user:servicehub_password@postgres:5432/servicehub_db
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your-super-secret-refresh-key-change-in-production}
       - NODE_ENV=production
       - PORT=3001
+      - GITHUB_REPO=${GITHUB_REPO}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - CURRENT_VERSION=${CURRENT_VERSION}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/servicehub
     ports:
       - "3000:3001"
     depends_on:
@@ -43,7 +51,7 @@ services:
     container_name: servicehub-frontend
     restart: unless-stopped
     environment:
-      - VITE_API_URL=http://localhost:3000/api
+      - VITE_API_URL=/api
     ports:
       - "8080:80"
     depends_on:

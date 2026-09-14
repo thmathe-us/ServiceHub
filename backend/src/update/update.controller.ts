@@ -1,4 +1,4 @@
-import { Controller, Post } from '@nestjs/common';
+import { Controller, Get, Post } from '@nestjs/common';
 import { UpdateService } from './update.service';
 
 /**
@@ -13,5 +13,10 @@ export class UpdateController {
   async trigger() {
     await this.updateService.checkForUpdates();
     return { status: 'update check executed' };
+  }
+
+  @Get('version')
+  async getVersion() {
+    return this.updateService.getVersionInfo();
   }
 }

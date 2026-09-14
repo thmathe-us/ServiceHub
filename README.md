@@ -118,3 +118,151 @@ servicehub/
 
 Este projeto é licenciado sob a MIT License.
 ```
+# ServiceHub
+
+ServiceHub é uma plataforma de monitoramento e gerenciamento de aplicações auto-hospedadas, construida com:
+
+- **Backend**: NestJS, Prisma, PostgreSQL
+- **Frontend**: React, Vite, TypeScript
+- **Orquestração**: Docker Compose
+
+## Funcionalidades
+
+- Monitoramento de serviços (status, logs, métricas)
+- Gerenciamento de usuários e autenticação (JWT, refresh token, opcional 2FA)
+- Configurações generales (tema, idioma, intervalo de verificação)
+- **Atualizações automáticas**: verifica releases no GitHub e aplica atualizações via `docker-compose pull && up -d --build`
+- Segurança: proteção de rotas, refresh de token, alteração de senha
+
+## Pré-requisitos
+
+- Docker Engine >= 20.10
+- Docker Compose (v2)
+- Node.js >= 18 (opcional, apenas para desenvolvimento local)
+- Git
+
+## Instalação (produção)
+
+1. Clone o repositório:
+   ```bash
+   git clone <repository-url>
+   cd servicehub
+   ```
+
+2. Copie o arquivo de exemplo de variáveis de ambiente e ajuste conforme necessário:
+   ```bash
+   cp .env.example .env   # Se existir, ou crie manualmente
+   ```
+   O arquivo `.env` deve conter:
+   ```
+   # Variáveis essenciais
+   GITHUB_REPO=seu-usuario/seu-repo          # Repositório GitHub para verificar releases
+   GITHUB_TOKEN=seu_token_pessoal            # Opcional, aumenta limite de requisições
+   CURRENT_VERSION=0.0.0                     # Versão atual instalada (define como 0.0.0 para forçar verificação)
+   POSTGRES_PASSWORD=sua_senha_segura        # Senha para o usuário do PostgreSQL
+   JWT_SECRET=seu_segredo_jwt                 # Segredo para assinatura de access token
+   JWT_REFRESH_SECRET=seu_segredo_refresh    # Segredo para refresh token
+   ```
+
+   Caso não exista `.env.example`, crie `.env` com o conteúdo acima.
+
+3. Inicie os serviços:
+   ```bash
+   docker compose up -d
+   ```
+
+   O compose irá:
+   - Criar a rede `servicehub-network`
+   - Subir o PostgreSQL (porta 5432)
+   - Construir e subir o backend (porta 3000 exposta como 3000->3001)
+   - Construir e subir o frontend (porta 8080)
+
+4. Acesse a interface:
+   - URL: http://localhost:8080
+   - Primeiro acesso: crie um usuário admin via tela de login (ou use as credenciais padrão se houver seed).
+
+## Desenvolvimento
+
+### Backend
+
+```bash
+cd backend
+cp .env.example .env   # ajuste se necessário
+npm install
+npm run start:dev      # ou npm run start para modo produção
+```
+
+### Frontend
+
+```bash
+cd frontend
+cp .env.example .env   # VITE_API_URL=http://localhost:3000 (ou conforme seu proxy)
+npm install
+npm run dev            # Vite dev server na porta 5173
+```
+
+### Testes
+
+```bash
+# Backend
+npm test
+
+# Frontend (se houver)
+npm test
+```
+
+## Atualizações automáticas
+
+O serviço de atualização roda em segundo plano (via `@Cron` no backend) e pode ser disparado manualmente:
+
+- **Verificar atualizações**: botão “Checar Atualizações” na aba *Atualizações* das Configurações.
+- **Aplicar atualização**: botão “Atualizar” (habilitado somente quando houver versão mais recente no GitHub).
+
+O processo de atualização:
+1. Busca a última tag no repositório definido em `GITHUB_REPO`.
+2. Se a tag for maior que `CURRENT_VERSION` (lida do `.env`):
+   - Atualiza o arquivo `.env` com `CURRENT_VERSION=<nova_tag>`.
+   - Executa `docker-compose pull && docker-compose up -d --build` em segundo plano (usando o socket Docker do host e o código-fonte montado como volume).
+3. Caso não haja nova versão, nada é feito.
+
+### Variáveis de ambiente relevantes
+
+| Variável          | Descrição                                                                                   |
+|-------------------|---------------------------------------------------------------------------------------------|
+| `GITHUB_REPO`     | Repositório no formato `usuario/repo` onde as releases são verificadas.                     |
+| `GITHUB_TOKEN`    | Token pessoal do GitHub (opcional). Se ausente, o limite é 60 requisições/hora.            |
+| `CURRENT_VERSION` | Versão atualmente instalada. Atualizada automaticamente após um update bem‑sucedido.        |
+| `POSTGRES_PASSWORD`| Senha do usuário `servicehub_user` no banco PostgreSQL.                                    |
+| `JWT_SECRET`      | Segredo usado para assinar os access tokens (mantenha secreto).                             |
+| `JWT_REFRESH_SECRET`| Segredo usado para assinar os refresh tokens (mantenha secreto).                        |
+
+## Estrutura do repositório
+
+```
+servicehub/
+├── backend/               # Código NestJS
+│   ├── src/
+│   │   └── update/        # Serviço e controller de atualizações
+│   ├── Dockerfile
+│   └── entrypoint.sh
+├── frontend/              # Código React/Vite
+│   ├── src/
+│   │   ├── pages/
+│   │   │   └── Settings.tsx   # Aba de Atualizações
+│   │   └── services/
+│   │       └── updateApi.ts   # Chamadas ao backend de atualização
+│   ├── Dockerfile
+│   └── nginx.conf
+├── docker-compose.yml     # Orquestração
+├── .env                   # Variáveis de ambiente (não versionar)
+└── README.md
+```
+
+## Licença
+
+Este projeto está licenciado sob a licença MIT - veja o arquivo `LICENSE` para mais detalhes.
+
+## Suporte
+
+Para problemas ou dúvidas, abra uma issue no repositório ou entre em contato com a equipe de manutenção.
+(Atualização da aplicação)

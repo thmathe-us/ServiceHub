@@ -10,7 +10,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -27,7 +27,7 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Install openssl for Prisma and nc for waiting
-RUN apk --no-cache add openssl netcat-openbsd
+RUN apk --no-cache add openssl netcat-openbsd docker-compose
 
 # Copy package files
 COPY package*.json ./
@@ -36,7 +36,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies (including bcrypt for seed)
-RUN npm ci --only=production && npm install --no-save bcrypt
+RUN npm install --legacy-peer-deps --only=production && npm install --no-save bcrypt
 
 # Generate Prisma Client in production image
 RUN npx prisma generate
