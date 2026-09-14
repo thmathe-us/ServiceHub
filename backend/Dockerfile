@@ -4,7 +4,7 @@ WORKDIR /app
 COPY backend/package*.json ./
 RUN npm install --legacy-peer-deps
 COPY backend .
-RUN npm run build
+RUN chmod +x node_modules/.bin/nest && npm run build
 
 # ------- runtime stage -------
 FROM node:20-alpine
